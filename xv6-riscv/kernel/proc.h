@@ -1,4 +1,8 @@
-// Saved registers for kernel context switches.
+#ifdef STRIDE
+#define DEFAULT_TICKET_ALLOTTMENT 50
+#define MAX_STRIDE_C 40000
+#endif
+//  registers for kernel context switches.
 struct context {
   uint64 ra;
   uint64 sp;
