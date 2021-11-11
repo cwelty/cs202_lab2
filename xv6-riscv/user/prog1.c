@@ -5,7 +5,6 @@
 int main(int argc, char *argv[]) 
 { 
     set_tickets(10);    // write your own function here 
-    sched_statistics();
     int i,k; 
     const int loop=100000; // adjust this parameter depending on your system speed 
     for(i=0;i<loop;i++) 

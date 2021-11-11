@@ -14,6 +14,6 @@ int main(int argc, char *argv[])
            asm("nop"); 
         } 
     } 
-    //sched_statistics(); // your syscall 
+    sched_statistics(); // your syscall 
     exit(0); 
 } 

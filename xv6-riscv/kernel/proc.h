@@ -115,7 +115,7 @@ struct proc {
   // for lottery scheduling
   uint64 tickets;
   uint64 ticks;
-=======
+
 #ifdef STRIDE 
   int stride;
   int pass;

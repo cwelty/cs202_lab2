@@ -550,6 +550,7 @@ scheduler(void)
   c->proc = 0;
 
   #ifdef LOTTERY
+printf("thing with lottery working");
 	int winningNumber;
 	int ticketSum = 0;
 	int counter = 0;
@@ -557,6 +558,7 @@ scheduler(void)
 
   for(;;) {
     intr_on();
+#ifdef LOTTERY 
 		ticketSum = 0;
     //  Find the total number of tickets in the system
     for (p = proc; p < &proc[NPROC]; p++) {
@@ -584,6 +586,38 @@ scheduler(void)
       }
 			release(&p->lock);
 		}
+#endif
+
+#ifdef STRIDE
+    int max_stride = MAX_STRIDE_C;
+    struct proc *minProc = 0;
+	for(p = proc; p < &proc[NPROC]; p++){
+		acquire(&p->lock);
+		if(p->state == RUNNABLE) {
+			if (p->pass < max_stride){
+				max_stride = p->pass;
+				minProc = p;
+			}
+		}
+		release(&p->lock);
+	}
+
+	if(minProc){
+
+		acquire(&p->lock);
+        if(p->state == RUNNABLE){
+            p = minProc;
+		    p->pass += p->stride;
+		    p->state = RUNNING; 
+		    c->proc = p;
+		    swtch(&c->context, &p->context);
+
+		    c->proc = 0;
+        }
+		release(&p->lock);
+	}
+#endif
+
 	}
 }
 
@@ -602,12 +636,12 @@ void
 sched_statistics()
 {
   struct proc *p = myproc();
-  acquire(&p->lock);
+  //acquire(&p->lock);
   uint64 ticks = p->ticks;
   uint64 tickets = p->tickets;
-  printf("Current process\'s number of ticks: %d\n", &ticks);
-  printf("Current process\'s number of tickets: %d\n", &tickets);
-  release(&p->lock);
+  printf("Current process\'s number of ticks: %d\n", ticks);
+  printf("Current process\'s number of tickets: %d\n", tickets);
+  //release(&p->lock);
 }
 
 
