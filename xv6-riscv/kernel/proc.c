@@ -271,6 +271,13 @@ userinit(void)
 
   p->state = RUNNABLE;
 
+#ifdef STRIDE
+  p->pass = 0; //always initialize pass to 0
+  p->tickets = DEFAULT_TICKET_ALLOTTMENT; //default ticket constant (for now)
+  if (p->tickets > 0)
+  	p->stride = (MAX_STRIDE_C) / (p->tickets);
+#endif
+
   release(&p->lock);
 }
 
@@ -340,6 +347,11 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+
+#ifdef STRIDE
+  np->stride = MAX_STRIDE_C /  np->tickets;
+  np->pass = 0;
+#endif
   release(&np->lock);
 
   return pid;
@@ -469,13 +481,44 @@ void
 scheduler(void)
 {
   struct proc *p;
+#ifdef STRIDE
+  struct proc *minProc;
+#endif
   struct cpu *c = mycpu();
+
   
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
+	
+#ifdef STRIDE
+	specialScheduler = true;
+    max_stride = MAX_STRIDE_C;
+	for(p = proc; p < &proc[NPROC]; p++){
+		acquire(&p->lock);
+		if(p->state == RUNNABLE) {
+			if (p->pass < max_stride){
+				max_stride = p->pass;
+				minProc = p;
+			}
+		}
+		release(&p->lock);
+	}
 
+	if(minProc){
+		minProc->pass += min->stride;
+
+		p = minProc;
+		acquire(&p->lock);
+		p->state = RUNNING; 
+		c->proc = p;
+		swtch(&c->context, &p->context);
+
+		c->proc = 0;
+		release(&p->lock);
+	}
+#endif
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -492,7 +535,9 @@ scheduler(void)
       }
       release(&p->lock);
     }
+		}
   }
+
 }
 */
 
@@ -564,6 +609,7 @@ sched_statistics()
   printf("Current process\'s number of tickets: %d\n", &tickets);
   release(&p->lock);
 }
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
