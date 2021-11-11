@@ -468,7 +468,10 @@ wait(uint64 addr)
 void
 scheduler(void)
 {
-  struct proc *p, minProc;
+  struct proc *p;
+#ifdef STRIDE
+  struct proc *minProc;
+#endif
   struct cpu *c = mycpu();
 
   
@@ -502,6 +505,7 @@ scheduler(void)
 
 		c->proc = 0;
 		release(&p->lock);
+	}
 #endif
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
@@ -521,7 +525,6 @@ scheduler(void)
     }
 		}
   }
-}
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
