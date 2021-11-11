@@ -344,6 +344,11 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+
+#ifdef STRIDE
+  np->stride = MAX_STRIDE_C /  np->tickets;
+  np->pass = 0;
+#endif
   release(&np->lock);
 
   return pid;
