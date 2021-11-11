@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "rng.c"
 
 struct cpu cpus[NCPU];
 
@@ -143,6 +144,8 @@ found:
   p->syscallCount = 0;
   p->pid = allocpid();
   p->state = USED;
+  p->ticks = 0;
+  p->tickets = 0;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -458,6 +461,10 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+
+
+// OG ROUND ROBIN SCHEDULER
+/*
 void
 scheduler(void)
 {
@@ -486,6 +493,76 @@ scheduler(void)
       release(&p->lock);
     }
   }
+}
+*/
+
+// lottery scheduler
+void
+scheduler(void)
+{
+	struct proc *p;
+	struct cpu *c = mycpu();
+  c->proc = 0;
+
+  #ifdef LOTTERY
+	int winningNumber;
+	int ticketSum = 0;
+	int counter = 0;
+	#endif
+
+  for(;;) {
+    intr_on();
+		ticketSum = 0;
+    //  Find the total number of tickets in the system
+    for (p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+			if (p->state == RUNNABLE) {
+        ticketSum += p->tickets;
+			}
+      release(&p->lock);
+		}
+		// Randomly select a winning ticket		
+		winningNumber = rng() % ticketSum;
+    counter = 0;
+		for (p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+			if (p->state == RUNNABLE){
+        ++counter;
+        if(counter >= winningNumber){
+          p->state = RUNNING;
+          c->proc = p;
+          swtch(&c->context, &p->context);
+          p->ticks += 1;
+          //totalTicks += 1;
+          c->proc = 0;
+        }
+      }
+			release(&p->lock);
+		}
+	}
+}
+
+// for lottery scheduling
+// Initializes the number of tickets to for a process
+void
+set_tickets(int tickets)
+{
+	struct proc *p = myproc();
+	acquire(&p->lock);
+	p->tickets = tickets;
+	release(&p->lock);
+}
+
+void
+sched_statistics()
+{
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  uint64 ticks = p->ticks;
+  uint64 tickets = p->tickets;
+  printf("Current process\'s number of ticks: %d\n", &ticks);
+  printf("Current process\'s number of tickets: %d\n", &tickets);
+  release(&p->lock);
 }
 
 // Switch to scheduler.  Must hold only p->lock

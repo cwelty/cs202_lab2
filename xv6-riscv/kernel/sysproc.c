@@ -7,6 +7,24 @@
 #include "spinlock.h"
 #include "proc.h"
 
+
+uint64 sys_sched_statistics(void)
+{
+  sched_statistics();
+  return 0;
+}
+
+// for lottery scheduling
+uint64 sys_set_tickets(void)
+{
+  printf("Calling sys_set_tickets function in sysproc.c\n");
+	int numTickets;
+	if (argint(0, &numTickets) < 0)
+		return -1;
+	set_tickets(numTickets);
+	return 0;
+}
+
 uint64 sys_info(void){
 	int n;
 	argint(0,&n);
