@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 { 
     set_tickets(10);    // write your own function here 
     int i,k; 
-    const int loop=100000; // adjust this parameter depending on your system speed 
+    const int loop=50000; // adjust this parameter depending on your system speed 
     for(i=0;i<loop;i++) 
     { 
         asm("nop");  // to prevent the compiler from optimizing the for-loop 
