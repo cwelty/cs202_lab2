@@ -5,10 +5,12 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "stddef.h"
 #include "rng.c"
 
 int sumTicks = 0;
 int ticketSum = 100;
+
 
 struct cpu cpus[NCPU];
 
@@ -149,7 +151,13 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->ticks = 0;
+#ifdef LOTTERY
   p->tickets = 100;
+#endif
+#ifdef STRIDE
+  p->tickets = 0;
+  p->pass = 0;
+#endif
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -276,10 +284,10 @@ userinit(void)
   p->state = RUNNABLE;
 
 #ifdef STRIDE
-  p->pass = 0; //always initialize pass to 0
+  printf("running stride portion of userinit()");
+  p->pass = 0; //always initialize pass to 0 for very first process
   p->tickets = DEFAULT_TICKET_ALLOTTMENT; //default ticket constant (for now)
-  if (p->tickets > 0)
-  	p->stride = (MAX_STRIDE_C) / (p->tickets);
+  p->stride = (MAX_STRIDE_C) / (p->tickets);
 #endif
 
   release(&p->lock);
@@ -352,10 +360,6 @@ fork(void)
   acquire(&np->lock);
   np->state = RUNNABLE;
 
-#ifdef STRIDE
-  np->stride = MAX_STRIDE_C /  np->tickets;
-  np->pass = 0;
-#endif
   release(&np->lock);
 
   return pid;
@@ -546,6 +550,8 @@ scheduler(void)
 */
 
 // lottery and stride scheduler
+
+#ifdef LOTTERY
 void
 scheduler(void)
 {
@@ -553,7 +559,6 @@ scheduler(void)
 	struct cpu *c = mycpu();
   c->proc = 0;
 
-#ifdef LOTTERY
 	int winningNumber;
 	int counter = 0;
 
@@ -586,43 +591,67 @@ scheduler(void)
         }
       }
       release(&p->lock);
-    }   
+    }
+ 	}
+}
 #endif
 
 #ifdef STRIDE
-    int max_stride = MAX_STRIDE_C;
+
+void
+scheduler(void)
+{
+	struct proc *p;
+	struct cpu *c = mycpu();
+  c->proc = 0;
+
+int wow = 0;
+if (wow>0) printf(p->name);
+  for(;;) {
+    intr_on();
     struct proc *minProc = 0;
-	for(p = proc; p < &proc[NPROC]; p++){
-		acquire(&p->lock);
-		if(p->state == RUNNABLE) {
-			if (p->pass < max_stride){
+    uint64 max_stride = -1;
+//int proctate = 0;
+
+for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+if(p->state == RUNNABLE) {
+//printf("Pass: %d\n", p->pass);
+        if (max_stride == -1){
+            max_stride = p->pass;
+            minProc = p;        
+        }
+        else if (p->pass < max_stride){
 				max_stride = p->pass;
 				minProc = p;
 			}
-		}
-		release(&p->lock);
-	}
+}
+      release(&p->lock);
+    }
+//if(proctate > 0)
+//printf("END FOR LOOP\n");
 
-	if(minProc){
+if(minProc != 0){
+    //printf("Pass used: %d\n", minProc->pass);
+    p = minProc;
+    acquire(&p->lock);
+if (p->state == RUNNABLE){
 
-		acquire(&p->lock);
-        if(p->state == RUNNABLE){
-            p = minProc;
-		    p->pass += p->stride;
-		    p->state = RUNNING; 
-		    c->proc = p;
-		    swtch(&c->context, &p->context);
+    p->pass = p->pass + p->stride;
 
-		    c->proc = 0;
-        }
-		release(&p->lock);
-	}
+    p->state = RUNNING;
+    p->ticks += 1;
+    c->proc = p;
+    swtch(&c->context, &p->context);
+    c->proc = 0;
+    //printf("Process state = %d\n", p->state);
+}
+    release(&p->lock);
+}
 #endif
 
-	}
-}
 
-// for lottery scheduling
+
 // Initializes the number of tickets to for a process
 void
 set_tickets(uint64 tickets)
@@ -630,6 +659,10 @@ set_tickets(uint64 tickets)
 	struct proc *p = myproc();
 	acquire(&p->lock);
 	p->tickets = tickets;
+#ifdef STRIDE
+  p->stride = MAX_STRIDE_C /  p->tickets;
+    printf("%d has been given %d tickets for a stride of %d\n", p->name, tickets, p->stride);
+#endif
 	release(&p->lock);
 }
 

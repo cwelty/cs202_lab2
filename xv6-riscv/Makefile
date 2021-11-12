@@ -73,6 +73,8 @@ endif
 LAB2 = STRIDE 
 CFLAGS += -D$(LAB2)
 
+LAB2 = LOTTERY
+CFLAGS += -D$(LAB2)
 LDFLAGS = -z max-page-size=4096
 
 $K/kernel: $(OBJS) $K/kernel.ld $U/initcode

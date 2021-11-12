@@ -2,6 +2,7 @@
 #include "kernel/stat.h" 
 #include "user/user.h"
 #include "kernel/rng.c" // random number
+
 int main(int argc, char *argv[]) 
 { 
     set_tickets(10);    // write your own function here 

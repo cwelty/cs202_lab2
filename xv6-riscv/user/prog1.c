@@ -15,11 +15,7 @@ int main(int argc, char *argv[])
            asm("nop"); 
         } 
     } 
+
     sched_statistics(); // your syscall  
-    
-    /*
-    int num1 = rng(10000);
-    int num2 = rng(10000);
-    int num3 = */
     exit(0);
 } 

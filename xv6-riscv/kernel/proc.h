@@ -117,7 +117,7 @@ struct proc {
   uint64 ticks;
 
 #ifdef STRIDE 
-  int stride;
-  int pass;
+  uint64 stride;
+  uint64 pass;
 #endif
 };
