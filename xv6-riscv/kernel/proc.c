@@ -596,10 +596,12 @@ printf("thing with lottery working");
 
     struct proc *minProc = 0;
     uint64 max_stride = -1;
+//int proctate = 0;
 
 for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+if(p->state == RUNNABLE) {
+//printf("Pass: %d\n", p->pass);
         if (max_stride == -1){
             max_stride = p->pass;
             minProc = p;        
@@ -608,23 +610,30 @@ for(p = proc; p < &proc[NPROC]; p++) {
 				max_stride = p->pass;
 				minProc = p;
 			}
-      }
+}
       release(&p->lock);
     }
+//if(proctate > 0)
+//printf("END FOR LOOP\n");
 
 if(minProc != 0){
+    //printf("Pass used: %d\n", minProc->pass);
     p = minProc;
     acquire(&p->lock);
 if (p->state == RUNNABLE){
-    p->pass += p->stride * p->stride;
+
+    p->pass = p->pass + p->stride;
+
     p->state = RUNNING;
     p->ticks += 1;
     c->proc = p;
     swtch(&c->context, &p->context);
     c->proc = 0;
+    //printf("Process state = %d\n", p->state);
+
+
 }
     release(&p->lock);
-    p = 0;
 }
 
 
