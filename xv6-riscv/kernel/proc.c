@@ -5,7 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-#include "rng.c"
+//#include "rng.c"
 #include "stddef.h"
 
 struct cpu cpus[NCPU];
@@ -550,6 +550,9 @@ scheduler(void)
 	struct cpu *c = mycpu();
   c->proc = 0;
 
+int wow = 0;
+if (wow>0) printf(p->name);
+
   #ifdef LOTTERY
 printf("thing with lottery working");
 	int winningNumber;
@@ -592,7 +595,7 @@ printf("thing with lottery working");
 #ifdef STRIDE
 
     struct proc *minProc = 0;
-    int max_stride = -1;
+    uint64 max_stride = -1;
 
 for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
