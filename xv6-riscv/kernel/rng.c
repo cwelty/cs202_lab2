@@ -1,15 +1,29 @@
-#include <stdint.h>
+#include "types.h"
 
-/* These state variables must be initialised so that they are not all zero. */
-uint64 w, x, y, z;
+#define START_STATE 0xACE1u
 
-uint64 rng(void) 
-{
-    uint64 t = x;
-    t ^= t << 11U;
-    t ^= t >> 8U;
-    x = y; y = z; z = w; 
-    w ^= w >> 19U;
-    w ^= t;
-    return w;
+ushort rng(ushort upperLimit) {
+
+    static ushort start_state = START_STATE;
+    ushort lfsr;
+    ushort bit;
+    ushort i = 0;
+    int winningNumber;
+
+    if (start_state == 0) {
+        start_state = start_state + 1;
+    }
+
+    lfsr = start_state;
+    start_state = start_state + 1;
+
+    do {
+        bit = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5));
+        lfsr = (lfsr >> 1) | (bit << 15);
+        i++;
+    } while (i < upperLimit);
+
+    winningNumber = lfsr % upperLimit;
+    //printf("winning number: %d\n", winningNumber);
+    return winningNumber;
 }

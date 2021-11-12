@@ -4,7 +4,7 @@
 #include "kernel/rng.c" // random number
 int main(int argc, char *argv[]) 
 { 
-    set_tickets(10);    // write your own function here 
+    set_tickets(30);    // write your own function here 
     int i,k; 
     const int loop=100000; // adjust this parameter depending on your system speed 
     for(i=0;i<loop;i++) 
@@ -15,9 +15,11 @@ int main(int argc, char *argv[])
            asm("nop"); 
         } 
     } 
-    sched_statistics(); // your syscall 
-    /*exit(0); 
-    int num = rng();
-    printf("%d", num);*/
+    sched_statistics(); // your syscall  
+    
+    /*
+    int num1 = rng(10000);
+    int num2 = rng(10000);
+    int num3 = */
     exit(0);
 } 

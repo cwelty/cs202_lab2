@@ -105,7 +105,7 @@ extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 extern uint64 sys_info(void);
-extern uint64 sys_set_tickets(void); // for lottery scheduler
+extern uint64 sys_set_tickets(void);
 extern uint64 sys_sched_statistics(void);
 
 static uint64 (*syscalls[])(void) = {
@@ -131,7 +131,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_info]    sys_info,
-[SYS_set_tickets] sys_set_tickets, // for lottery scheduler
+[SYS_set_tickets] sys_set_tickets,
 [SYS_sched_statistics] sys_sched_statistics,
 };
 

@@ -24,7 +24,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 void info(int);
-int set_tickets(int);
+uint64 set_tickets(uint64);
 int sched_statistics(void);
 
 // ulib.c

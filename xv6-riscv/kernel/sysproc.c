@@ -18,10 +18,11 @@ uint64 sys_sched_statistics(void)
 uint64 sys_set_tickets(void)
 {
   printf("Calling sys_set_tickets function in sysproc.c\n");
-	int numTickets;
-	if (argint(0, &numTickets) < 0)
-		return -1;
-	set_tickets(numTickets);
+  int tickets;
+  argint(0, &tickets);
+  if(tickets <= 0)  
+    return -1;
+	set_tickets(tickets);
 	return 0;
 }
 
