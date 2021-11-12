@@ -107,6 +107,8 @@ void            procdump(void);
 void		    process_count_print(void);
 void		    syscall_count_print(void);
 void            mem_pages_count_print(void);
+void		    set_tickets(uint64);
+void            sched_statistics(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

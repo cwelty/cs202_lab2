@@ -5,8 +5,12 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-//#include "rng.c"
 #include "stddef.h"
+#include "rng.c"
+
+int sumTicks = 0;
+int ticketSum = 100;
+
 
 struct cpu cpus[NCPU];
 
@@ -79,6 +83,7 @@ procinit(void)
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->kstack = KSTACK((int) (p - proc));
+      p->tickets = 100; // for lottery
   }
 }
 
@@ -146,9 +151,11 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->ticks = 0;
-  p->tickets = 0;
-
+#ifdef LOTTERY
+  p->tickets = 100;
+#endif
 #ifdef STRIDE
+  p->tickets = 0;
   p->pass = 0;
 #endif
 
@@ -380,7 +387,7 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
-
+  //ticketSum -= p->tickets; // to account for global declaration
   if(p == initproc)
     panic("init exiting");
 
@@ -542,7 +549,55 @@ scheduler(void)
 }
 */
 
-// lottery scheduler
+// lottery and stride scheduler
+
+#ifdef LOTTERY
+void
+scheduler(void)
+{
+	struct proc *p;
+	struct cpu *c = mycpu();
+  c->proc = 0;
+
+	int winningNumber;
+	int counter = 0;
+
+  for(;;) {
+    intr_on();
+		// Randomly select a winning ticket	
+    winningNumber = rng(ticketSum);
+    counter = 0;
+    for (p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if (p->state == RUNNABLE){
+        counter += p->tickets;
+        if (counter >= winningNumber){
+          //printf("winner #tickets: %d\n", p->tickets);
+          //printf("winner pid: %d\n", p->pid);
+          p->state = RUNNING;
+          c->proc = p;
+          swtch(&c->context, &p->context);
+          p->ticks += 1;
+          c->proc = 0;
+          if(p->tickets == 10 || p->tickets == 20 || p->tickets == 30){
+            sumTicks += 1;
+            if(sumTicks % 25 == 0){
+              printf("Total ticks so far: %d\n", sumTicks);
+              printf("PID: %d, Current process, with %d tickets, number of ticks so far: %d\n", p->pid, p->tickets, p->ticks);
+            }
+          }
+          release(&p->lock);
+          break;
+        }
+      }
+      release(&p->lock);
+    }
+ 	}
+}
+#endif
+
+#ifdef STRIDE
+
 void
 scheduler(void)
 {
@@ -552,48 +607,8 @@ scheduler(void)
 
 int wow = 0;
 if (wow>0) printf(p->name);
-
-  #ifdef LOTTERY
-printf("thing with lottery working");
-	int winningNumber;
-	int ticketSum = 0;
-	int counter = 0;
-	#endif
-
   for(;;) {
     intr_on();
-#ifdef LOTTERY 
-		ticketSum = 0;
-    //  Find the total number of tickets in the system
-    for (p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-			if (p->state == RUNNABLE) {
-        ticketSum += p->tickets;
-			}
-      release(&p->lock);
-		}
-		// Randomly select a winning ticket		
-		winningNumber = rng() % ticketSum;
-    counter = 0;
-		for (p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-			if (p->state == RUNNABLE){
-        ++counter;
-        if(counter >= winningNumber){
-          p->state = RUNNING;
-          c->proc = p;
-          swtch(&c->context, &p->context);
-          p->ticks += 1;
-          //totalTicks += 1;
-          c->proc = 0;
-        }
-      }
-			release(&p->lock);
-		}
-#endif
-
-#ifdef STRIDE
-
     struct proc *minProc = 0;
     uint64 max_stride = -1;
 //int proctate = 0;
@@ -630,24 +645,16 @@ if (p->state == RUNNABLE){
     swtch(&c->context, &p->context);
     c->proc = 0;
     //printf("Process state = %d\n", p->state);
-
-
 }
     release(&p->lock);
 }
-
-
-
-
 #endif
 
-	}
-}
 
-// for lottery scheduling
+
 // Initializes the number of tickets to for a process
 void
-set_tickets(int tickets)
+set_tickets(uint64 tickets)
 {
 	struct proc *p = myproc();
 	acquire(&p->lock);
@@ -663,13 +670,12 @@ void
 sched_statistics()
 {
   struct proc *p = myproc();
-  acquire(&p->lock);
-  uint64 ticks = p->ticks;
-  uint64 tickets = p->tickets;
-  printf("Current process\'s number of ticks: %d\n", ticks);
-  printf("Current process\'s number of tickets: %d\n\n", tickets);
-  release(&p->lock);
-
+  uint ticks = p->ticks;
+  uint tickets = p->tickets;
+  if(ticks != 0){
+    printf("Process with %d tickets finished after %d ticks\n", tickets, ticks);
+  }
+  printf("Total ticks while xv6 has been writing: %d\n", sumTicks);
 }
 
 

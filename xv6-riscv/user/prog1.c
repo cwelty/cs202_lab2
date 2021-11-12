@@ -15,9 +15,7 @@ int main(int argc, char *argv[])
            asm("nop"); 
         } 
     } 
-    sched_statistics(); // your syscall 
-    /*exit(0); 
-    int num = rng();
-    printf("%d", num);*/
+
+    sched_statistics(); // your syscall  
     exit(0);
 } 
