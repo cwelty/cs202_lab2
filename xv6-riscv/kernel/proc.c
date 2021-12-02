@@ -5,12 +5,6 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-#include "stddef.h"
-#include "rng.c"
-
-int sumTicks = 0;
-int ticketSum = 100;
-
 
 struct cpu cpus[NCPU];
 
@@ -48,30 +42,6 @@ proc_mapstacks(pagetable_t kpgtbl) {
   }
 }
 
-void syscall_count_print(void){
-	struct proc *p = myproc();
-	int syscallCount = p->syscallCount;
-	printf("Number of system calls made by the current process: %d\n", syscallCount);
-}
-
-void process_count_print(void){
-  struct proc *p;
-  int count = 0;
-  for(p = proc; p < &proc[NPROC]; p++){
-    if(p->state == UNUSED)
-      continue;
-    count++;
-  }
-
-  printf("Number of processes in the system: %d\n", count); 
-
-}
-
-void mem_pages_count_print(void){
-  uint memPagesCount = (PGROUNDUP(proc->sz)) / PGSIZE;
-  printf("Number of memory pages: %d\n", memPagesCount);
-}
-
 // initialize the proc table at boot time.
 void
 procinit(void)
@@ -83,7 +53,6 @@ procinit(void)
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->kstack = KSTACK((int) (p - proc));
-      p->tickets = 100; // for lottery
   }
 }
 
@@ -136,6 +105,7 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
+
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
@@ -147,17 +117,8 @@ allocproc(void)
   return 0;
 
 found:
-  p->syscallCount = 0;
   p->pid = allocpid();
   p->state = USED;
-  p->ticks = 0;
-#ifdef LOTTERY
-  p->tickets = 100;
-#endif
-#ifdef STRIDE
-  p->tickets = 0;
-  p->pass = 0;
-#endif
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -283,13 +244,6 @@ userinit(void)
 
   p->state = RUNNABLE;
 
-#ifdef STRIDE
-  printf("running stride portion of userinit()");
-  p->pass = 0; //always initialize pass to 0 for very first process
-  p->tickets = DEFAULT_TICKET_ALLOTTMENT; //default ticket constant (for now)
-  p->stride = (MAX_STRIDE_C) / (p->tickets);
-#endif
-
   release(&p->lock);
 }
 
@@ -359,7 +313,6 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
-
   release(&np->lock);
 
   return pid;
@@ -387,7 +340,7 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
-  //ticketSum -= p->tickets; // to account for global declaration
+
   if(p == initproc)
     panic("init exiting");
 
@@ -481,52 +434,17 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-
-
-// OG ROUND ROBIN SCHEDULER
-/*
 void
 scheduler(void)
 {
   struct proc *p;
-#ifdef STRIDE
-  struct proc *minProc;
-#endif
   struct cpu *c = mycpu();
-
   
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-	
-#ifdef STRIDE
-	specialScheduler = true;
-    max_stride = MAX_STRIDE_C;
-	for(p = proc; p < &proc[NPROC]; p++){
-		acquire(&p->lock);
-		if(p->state == RUNNABLE) {
-			if (p->pass < max_stride){
-				max_stride = p->pass;
-				minProc = p;
-			}
-		}
-		release(&p->lock);
-	}
 
-	if(minProc){
-		minProc->pass += min->stride;
-
-		p = minProc;
-		acquire(&p->lock);
-		p->state = RUNNING; 
-		c->proc = p;
-		swtch(&c->context, &p->context);
-
-		c->proc = 0;
-		release(&p->lock);
-	}
-#endif
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -543,141 +461,8 @@ scheduler(void)
       }
       release(&p->lock);
     }
-		}
   }
-
 }
-*/
-
-// lottery and stride scheduler
-
-#ifdef LOTTERY
-void
-scheduler(void)
-{
-	struct proc *p;
-	struct cpu *c = mycpu();
-  c->proc = 0;
-
-	int winningNumber;
-	int counter = 0;
-
-  for(;;) {
-    intr_on();
-		// Randomly select a winning ticket	
-    winningNumber = rng(ticketSum);
-    counter = 0;
-    for (p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if (p->state == RUNNABLE){
-        counter += p->tickets;
-        if (counter >= winningNumber){
-          //printf("winner #tickets: %d\n", p->tickets);
-          //printf("winner pid: %d\n", p->pid);
-          p->state = RUNNING;
-          c->proc = p;
-          swtch(&c->context, &p->context);
-          p->ticks += 1;
-          c->proc = 0;
-          if(p->tickets == 10 || p->tickets == 20 || p->tickets == 30){
-            sumTicks += 1;
-            if(sumTicks % 25 == 0){
-              printf("Total ticks so far: %d\n", sumTicks);
-              printf("PID: %d, Current process, with %d tickets, number of ticks so far: %d\n", p->pid, p->tickets, p->ticks);
-            }
-          }
-          release(&p->lock);
-          break;
-        }
-      }
-      release(&p->lock);
-    }
- 	}
-}
-#endif
-
-#ifdef STRIDE
-
-void
-scheduler(void)
-{
-	struct proc *p;
-	struct cpu *c = mycpu();
-  c->proc = 0;
-
-int wow = 0;
-if (wow>0) printf(p->name);
-  for(;;) {
-    intr_on();
-    struct proc *minProc = 0;
-    uint64 max_stride = -1;
-//int proctate = 0;
-
-for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-if(p->state == RUNNABLE) {
-//printf("Pass: %d\n", p->pass);
-        if (max_stride == -1){
-            max_stride = p->pass;
-            minProc = p;        
-        }
-        else if (p->pass < max_stride){
-				max_stride = p->pass;
-				minProc = p;
-			}
-}
-      release(&p->lock);
-    }
-//if(proctate > 0)
-//printf("END FOR LOOP\n");
-
-if(minProc != 0){
-    //printf("Pass used: %d\n", minProc->pass);
-    p = minProc;
-    acquire(&p->lock);
-if (p->state == RUNNABLE){
-
-    p->pass = p->pass + p->stride;
-
-    p->state = RUNNING;
-    p->ticks += 1;
-    c->proc = p;
-    swtch(&c->context, &p->context);
-    c->proc = 0;
-    //printf("Process state = %d\n", p->state);
-}
-    release(&p->lock);
-}
-#endif
-
-
-
-// Initializes the number of tickets to for a process
-void
-set_tickets(uint64 tickets)
-{
-	struct proc *p = myproc();
-	acquire(&p->lock);
-	p->tickets = tickets;
-#ifdef STRIDE
-  p->stride = MAX_STRIDE_C /  p->tickets;
-    printf("%d has been given %d tickets for a stride of %d\n", p->name, tickets, p->stride);
-#endif
-	release(&p->lock);
-}
-
-void
-sched_statistics()
-{
-  struct proc *p = myproc();
-  uint ticks = p->ticks;
-  uint tickets = p->tickets;
-  if(ticks != 0){
-    printf("Process with %d tickets finished after %d ticks\n", tickets, ticks);
-  }
-  printf("Total ticks while xv6 has been writing: %d\n", sumTicks);
-}
-
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
@@ -869,80 +654,51 @@ procdump(void)
     printf("\n");
   }
 }
-	  
-/*int clone(void *stack, int size){
 
+//right now, just a copy of fork()
+int clone (void *stack, int size){
 	int i, pid;
-	struct proc *np, *p = myproc();
-	
-	//try to allocate a new process
-	if((np = allocproc()) == 0)
-		return -1;
-	
-	//parent to child memory copy
-	if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
-		freeproc(np);
-		release(&np->lock);
-		return -1;
-	}
-	
-	np->sz = p->sz;
-	
-	*(np->trapframe) = *(p->trapframe);
-	
-	for(i = 0; i < NOFILE; i++)
-		if(p->ofile[i])
-			np->ofile[i] = filedup(p->ofile[i]);
-	np->cwd = idup(p->cwd);
-		
-	safestrcpy(np->name, p->name, sizeof(p->name));
-		
-	pid = np->pid;
-		
-	release(&np->lock);
-		
-	acquire(&wait_lock);
-	np->parent = p;
-	release(&wait_lock);
-	
-	acquire(&np-?lock);
-	np->state = RUNNABLE;
-	release(&np->lock);
-	
-	return pid;
-	
-	//comment everyting for clarity
-	
-	}
-	
-}*/
-	  
-//shmuckler implementation
-int clone(void* stack, int size){
-	
-	/*int i, pid;
-	struct proc *np, myp = myproc();
-	
-	//Allocate process
-	if((np = allocproc()) == 0)
-		return -1;
-	
-	struct proc *procCopy = myp;
-	if(procCopy = NULL) ;
-	np->pagetable = myp->pagetable;
-	np->sz = myp->sz;  
-	np->parent = myp;
-	
-	*npn->trapframe = *myp->trapframe;
-	//Copy current frame into the stack
-	void *startCopy = (void *)myp->trapframe->ebp + 16;
-	void *endCopy = (void *)myp->trapframe->esp;
-	uint copySize = (uint) (startCopy - endCopy);
-	
-	np->trapframe->esp = (uint) (stack - copySize);
-	np->trapframe->ebp = (uint) */
-	
-	//I'm working through the above, for now:
-	printf("under construction");
-	return -1;
+  struct proc *np;
+  struct proc *p = myproc();
+
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+
+  // Copy user memory from parent to child.
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+  np->sz = p->sz;
+
+  // copy saved user registers.
+  *(np->trapframe) = *(p->trapframe);
+
+  // Cause fork to return 0 in the child.
+  np->trapframe->a0 = 0;
+
+  // increment reference counts on open file descriptors.
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = idup(p->cwd);
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  pid = np->pid;
+
+  release(&np->lock);
+
+  acquire(&wait_lock);
+  np->parent = p;
+  release(&wait_lock);
+
+  acquire(&np->lock);
+  np->state = RUNNABLE;
+  release(&np->lock);
+
+  return pid;
 }

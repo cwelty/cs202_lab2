@@ -1,8 +1,4 @@
-#ifdef STRIDE
-#define DEFAULT_TICKET_ALLOTTMENT 50
-#define MAX_STRIDE_C 40000
-#endif
-//  registers for kernel context switches.
+// Saved registers for kernel context switches.
 struct context {
   uint64 ra;
   uint64 sp;
@@ -109,15 +105,4 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  uint64 syscallCount;         //number of systems calls made by this process
-
-
-  // for lottery scheduling
-  uint64 tickets;
-  uint64 ticks;
-
-#ifdef STRIDE 
-  uint64 stride;
-  uint64 pass;
-#endif
 };

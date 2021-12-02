@@ -7,41 +7,6 @@
 #include "spinlock.h"
 #include "proc.h"
 
-
-uint64 sys_sched_statistics(void)
-{
-  sched_statistics();
-  return 0;
-}
-
-// for lottery scheduling
-uint64 sys_set_tickets(void)
-{
-  printf("Calling sys_set_tickets function in sysproc.c\n");
-  int tickets;
-  argint(0, &tickets);
-  if(tickets <= 0)  
-    return -1;
-	set_tickets(tickets);
-	return 0;
-}
-
-uint64 sys_info(void){
-	int n;
-	argint(0,&n);
-	printf("The value of n is %d\n", n);
-	if (n == 1){
-		process_count_print();
-	}
-	else if (n == 2){
-		syscall_count_print();
-	}
-  else if (n == 3){
-    mem_pages_count_print();
-  }
-	return 0;
-}
-
 uint64
 sys_exit(void)
 {
@@ -131,14 +96,8 @@ sys_uptime(void)
   return xticks;
 }
 
+//really default system call
 uint64
 sys_clone(void){
-	uint64 stack;
-	int size;
-	if(argaddr(0, &stack) < 0)
-		return -1;
-	if(argint(1, &size) < 0) 
-		return -1;
-	
-	return clone((void *)stack, size);
+	return 1;
 }

@@ -1,10 +1,6 @@
 struct stat;
 struct rtcdate;
 
-typedef struct{
-	int flag;
-}lock_t;
-
 // system calls
 int fork(void);
 int exit(int) __attribute__((noreturn));
@@ -27,9 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-void info(int);
-uint64 set_tickets(uint64);
-int sched_statistics(void);
+int clone(void *stack, int size); //lab 3 addition
 
 // ulib.c
 int stat(const char*, struct stat*);
