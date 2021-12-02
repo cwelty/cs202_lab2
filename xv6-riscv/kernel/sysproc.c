@@ -130,3 +130,15 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_clone(void){
+	uint64 stack;
+	int size;
+	if(argaddr(0, &stack) < 0)
+		return -1;
+	if(argint(1, &size) < 0) 
+		return -1;
+	
+	return clone((void *)stack, size);
+}

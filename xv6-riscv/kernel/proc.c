@@ -869,3 +869,80 @@ procdump(void)
     printf("\n");
   }
 }
+	  
+/*int clone(void *stack, int size){
+
+	int i, pid;
+	struct proc *np, *p = myproc();
+	
+	//try to allocate a new process
+	if((np = allocproc()) == 0)
+		return -1;
+	
+	//parent to child memory copy
+	if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
+		freeproc(np);
+		release(&np->lock);
+		return -1;
+	}
+	
+	np->sz = p->sz;
+	
+	*(np->trapframe) = *(p->trapframe);
+	
+	for(i = 0; i < NOFILE; i++)
+		if(p->ofile[i])
+			np->ofile[i] = filedup(p->ofile[i]);
+	np->cwd = idup(p->cwd);
+		
+	safestrcpy(np->name, p->name, sizeof(p->name));
+		
+	pid = np->pid;
+		
+	release(&np->lock);
+		
+	acquire(&wait_lock);
+	np->parent = p;
+	release(&wait_lock);
+	
+	acquire(&np-?lock);
+	np->state = RUNNABLE;
+	release(&np->lock);
+	
+	return pid;
+	
+	//comment everyting for clarity
+	
+	}
+	
+}*/
+	  
+//shmuckler implementation
+int clone(void* stack, int size){
+	
+	/*int i, pid;
+	struct proc *np, myp = myproc();
+	
+	//Allocate process
+	if((np = allocproc()) == 0)
+		return -1;
+	
+	struct proc *procCopy = myp;
+	if(procCopy = NULL) ;
+	np->pagetable = myp->pagetable;
+	np->sz = myp->sz;  
+	np->parent = myp;
+	
+	*npn->trapframe = *myp->trapframe;
+	//Copy current frame into the stack
+	void *startCopy = (void *)myp->trapframe->ebp + 16;
+	void *endCopy = (void *)myp->trapframe->esp;
+	uint copySize = (uint) (startCopy - endCopy);
+	
+	np->trapframe->esp = (uint) (stack - copySize);
+	np->trapframe->ebp = (uint) */
+	
+	//I'm working through the above, for now:
+	printf("under construction");
+	return -1;
+}
