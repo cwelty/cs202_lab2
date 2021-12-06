@@ -19,20 +19,20 @@ void thread_create(void *(*start_routine)(void*), void *arg){
 }
 
 void lock_init(struct lock_t *locker){
-	
 	locker->locked = 0;
-	
 }
 
 void lock_acquire(struct lock_t *locker){
-	
-	//figuring out spinlock stuff
-	
-	
+	while(xchg(&locker->locked, 1) != 0);	
 }
 
 void lock_release(struct lock_t *locker){
-	
-	//stuff for releasing lock
-	
+	xchg(&locker->locked, 0);
 }
+
+int xchg(int new, int *p){
+	int old = p;
+	*p = new;
+	return old;
+}
+
