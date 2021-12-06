@@ -106,6 +106,6 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   
-  struct proc *pthread;        // lab 3 addition 
-  void * ustack;               // lab 3 addition
+  int youAThread;
+  int threadCount;
 };

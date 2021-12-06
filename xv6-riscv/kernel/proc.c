@@ -289,6 +289,8 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
+  np->youAThread = 0;
+  np->threadCount = 0;
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -418,7 +420,7 @@ wait(uint64 addr)
     }
 
     // No point waiting if we don't have any children.
-    if(!havekids || p->killed){
+    if((!havekids || p->killed) && p->youAThread == 0){
       release(&wait_lock);
       return -1;
     }
@@ -677,18 +679,21 @@ int clone (void *stack, int size){
   }*/
   //not copying, but sharing??? (above)
   struct proc *copyProc = p;	//lab 3 additions BEGIN
+  if(p->youAThread == 0)
+    p->threadCount++;
   if (copyProc == NULL) ;	
   np->pagetable = proc->pagetable;	
   np->sz = p->sz;
   np->parent = p;	
+  np->youAThread = 1;
   *np->trapframe = *p->trapframe;	
 	
   ///copy current frame into the stack
   //void *startCopy = (void *)p->trapframe->sp + 16; //???
   void *endCopy = (void *)p->trapframe->gp;
   
-  np->trapframe->sp = (uint64) (stack - 16);
-  np->trapframe->gp = (uint64) (stack - size);
+  np->trapframe->sp = (uint64) (stack);
+  np->trapframe->gp = (uint64) (stack - size * p->threadCount);
 	
   memmove(stack - size, endCopy, size);
 
@@ -715,6 +720,6 @@ int clone (void *stack, int size){
   //acquire(&np->lock);
   np->state = RUNNABLE;
   //release(&np->lock);
-
+  
   return pid;
 }
