@@ -43,12 +43,12 @@ extern struct cpu cpus[NCPU];
 // the entire kernel call stack.
 struct trapframe {
   /*   0 */ uint64 kernel_satp;   // kernel page table
-  /*   8 */ uint64 kernel_sp;     // top of process's kernel stack
+  /*   8 */ uint64 kernel_sp;     // top of process's kernel stack 
   /*  16 */ uint64 kernel_trap;   // usertrap()
   /*  24 */ uint64 epc;           // saved user program counter
   /*  32 */ uint64 kernel_hartid; // saved kernel tp
   /*  40 */ uint64 ra;
-  /*  48 */ uint64 sp;
+  /*  48 */ uint64 sp;            // user stack address 
   /*  56 */ uint64 gp;
   /*  64 */ uint64 tp;
   /*  72 */ uint64 t0;
@@ -105,4 +105,7 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  
+  struct proc *pthread;        // lab 3 addition 
+  void * ustack;               // lab 3 addition
 };

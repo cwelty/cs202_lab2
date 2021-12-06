@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include <stddef.h>
 
 struct cpu cpus[NCPU];
 
@@ -657,9 +658,11 @@ procdump(void)
 
 //right now, just a copy of fork()
 int clone (void *stack, int size){
-	int i, pid;
+  int i, pid;
   struct proc *np;
   struct proc *p = myproc();
+	
+  //int * ustack = stack + PGSIZE - 4;//new
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -667,15 +670,28 @@ int clone (void *stack, int size){
   }
 
   // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  /*if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;
-  }
+  }*/
+  //not copying, but sharing??? (above)
+  struct proc *copyProc = p;	//lab 3 additions BEGIN
+  if (copyProc == NULL) ;	
+  np->pagetable = proc->pagetable;	
   np->sz = p->sz;
+  np->parent = p;	
+  *np->trapframe = *p->trapframe;	
+	
+  ///copy current frame into the stack
+  //void *startCopy = (void *)p->trapframe->sp + 16; //???
+  void *endCopy = (void *)p->trapframe->gp;
+  
+  np->trapframe->sp = (uint64) (stack - 16);
+  np->trapframe->gp = (uint64) (stack - size);
+	
+  memmove(stack - size, endCopy, size);
 
-  // copy saved user registers.
-  *(np->trapframe) = *(p->trapframe);
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
@@ -690,15 +706,15 @@ int clone (void *stack, int size){
 
   pid = np->pid;
 
-  release(&np->lock);
+  //release(&np->lock);
 
-  acquire(&wait_lock);
-  np->parent = p;
-  release(&wait_lock);
+  //acquire(&wait_lock);
+  //np->parent = p;
+  //release(&wait_lock);
 
-  acquire(&np->lock);
+  //acquire(&np->lock);
   np->state = RUNNABLE;
-  release(&np->lock);
+  //release(&np->lock);
 
   return pid;
 }
