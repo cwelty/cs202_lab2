@@ -1,5 +1,6 @@
 #include "userlib.h"
-
+#include "user/user.h"
+#include "riscv.h"
 //struct lock_t lock;
 
 int xchg(int new, int *p){
@@ -10,13 +11,13 @@ int xchg(int new, int *p){
 
 void thread_create(void *(*start_routine)(void*), void *arg){
 	
-	void *nSp = malloc(4096);
+	void *nSp = malloc(PGSIZE);
 	int rc;
-	rc = clone(nSp, 4096);
+	rc = clone(nSp, PGSIZE);
 	
 	if (rc == 0){
 		(*start_routine)(arg);
-		exit();
+		exit(0);
 	}
 }
 
@@ -25,10 +26,12 @@ void lock_init(struct lock_t *locker){
 }
 
 void lock_acquire(struct lock_t *locker){
-	while(atoi(xchg(&locker->locked, 1)) != 0);	
+	int i = 1;
+	int *p = &i;
+	while(xchg(locker->locked, p) != 0);	
 }
 
 void lock_release(struct lock_t *locker){
-	xchg(atoi(&locker->locked), 0);
+	xchg(locker->locked, 0);
 }
 
