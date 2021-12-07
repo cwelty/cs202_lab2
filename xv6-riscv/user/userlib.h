@@ -1,11 +1,11 @@
 #ifndef USERLIB_H
 #define USERLIB_H
 
-#include "types.h"
+#include "kernel/types.h"
 //#include "stat.h"
-#include "fcntl.h"
+//#include "fcntl.h"
 #include "../user/user.h"
-#include "spinlock.h"
+#include "kernel/spinlock.h"
 //struct lock_t lock;
 
 int xchg(int new, int *p);

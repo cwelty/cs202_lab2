@@ -1,7 +1,9 @@
 #include "userlib.h"
 #include "user/user.h"
-#include "riscv.h"
+//#include "kernel/riscv.h"
 //struct lock_t lock;
+
+#define PGSIZE 4096
 
 int xchg(int new, int *p){
 	int* old = p;
@@ -12,10 +14,12 @@ int xchg(int new, int *p){
 void thread_create(void *(*start_routine)(void*), void *arg){
 	
 	void *nSp = malloc(PGSIZE);
+	//uint64 ptr = (uint64) (nSp);
 	int rc;
 	rc = clone(nSp, PGSIZE);
-	
+	printf("pre-rc check\n");
 	if (rc == 0){
+		printf("Starting the routine...\n");
 		(*start_routine)(arg);
 		exit(0);
 	}

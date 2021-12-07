@@ -138,6 +138,7 @@ int             argstr(int, char*, int);
 int             argaddr(int, uint64 *);
 int             fetchstr(uint64, char*, int);
 int             fetchaddr(uint64, uint64*);
+int				argptr(int, void*);
 void            syscall();
 
 // trap.c

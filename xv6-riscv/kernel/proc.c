@@ -660,6 +660,7 @@ procdump(void)
 
 //right now, just a copy of fork()
 int clone (void *stack, int size){
+  printf("made it to clone\n");
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
@@ -678,10 +679,9 @@ int clone (void *stack, int size){
     return -1;
   }*/
   //not copying, but sharing??? (above)
-  struct proc *copyProc = p;	//lab 3 additions BEGIN
   if(p->youAThread == 0)
     p->threadCount++;
-  if (copyProc == NULL) ;	
+  //if (copyProc == NULL) ;	
   np->pagetable = proc->pagetable;	
   np->sz = p->sz;
   np->parent = p;	
@@ -690,13 +690,13 @@ int clone (void *stack, int size){
 	
   ///copy current frame into the stack
   //void *startCopy = (void *)p->trapframe->sp + 16; //???
-  void *endCopy = (void *)p->trapframe->gp;
+  //void *endCopy = (void *)(p->trapframe->sp - (p->threadCount * size));
   
-  np->trapframe->sp = (uint64) (stack);
-  np->trapframe->gp = (uint64) (stack - size * p->threadCount);
+  np->trapframe->sp = (uint64) (stack - p->threadCount * size);
 	
-  memmove(stack - size, endCopy, size);
-
+  //printf("clone: right before memmove()\n");
+  //memmove(stack - (p->threadCount * size), endCopy, size);
+  //printf("clone: after memmove\n");
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
@@ -720,6 +720,8 @@ int clone (void *stack, int size){
   //acquire(&np->lock);
   np->state = RUNNABLE;
   //release(&np->lock);
+  
+  printf("made it to end of clone\n");
   
   return pid;
 }

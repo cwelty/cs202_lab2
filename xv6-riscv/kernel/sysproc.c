@@ -99,5 +99,9 @@ sys_uptime(void)
 //really default system call
 uint64
 sys_clone(void){
-	return 1;
+	void *stack;
+  int size;
+  argint(1, &size);
+  argptr(0, &stack);
+  return clone(stack, size);
 }

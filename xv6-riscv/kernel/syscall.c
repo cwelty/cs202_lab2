@@ -61,6 +61,7 @@ argint(int n, int *ip)
   return 0;
 }
 
+
 // Retrieve an argument as a pointer.
 // Doesn't check for legality, since
 // copyin/copyout will do that.
@@ -68,6 +69,11 @@ int
 argaddr(int n, uint64 *ip)
 {
   *ip = argraw(n);
+  return 0;
+}
+
+int argptr (int n, void *help){
+  help = (void *) argraw(n);
   return 0;
 }
 
